@@ -8,15 +8,13 @@ import { initializeApp, credential } from "firebase-admin";
 import { Firestore } from "@google-cloud/firestore";
 
 // Configure OpenAI API
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const configuration = new Configuration({ apiKey: OPENAI_API_KEY });
 const openai = new OpenAIApi(configuration);
 
-
-
 // Configure AWS Polly
-const AKID = "AKIAYB34LVOBH4DIRYMW";
-const SAKID = "5Xp4XcZvTBSbktWu+rJcfLWwol3Jiz7w9g8NEu/F";
+const AKID = process.env.AKID;
+const SAKID = process.env.SAKID;
 const AWS_REGION = "us-east-1";
 
 AWS.config.update({
@@ -162,7 +160,7 @@ export default async function (req, res) {
     await saveEntitiesAndCompletionToFirestore(uuid, userEntities, completion.data.choices[0].message); // Use the UUID
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error });
+    res.status(500).json({ error: "Failed to generate audio or save user information" });
   }
 }
 
