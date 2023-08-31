@@ -104,70 +104,49 @@ export default async function (req, res) {
       convohist.push({ role: "User", content: userMessage.content });
     }
 
-    // Use the updated system message and user messages to generate a response using OpenAI API
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "user",
-          content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email. You have the ability to save conversations. Keep your answers short and concise`,
-        },
-        ...req.body.messages,
-      ],
-      temperature: 1,
-      top_p: 1,
-   
-    });
+// Use the updated system message and user messages to generate a response using OpenAI API
+const completion = await openai.createChatCompletion({
+  model: "gpt-3.5-turbo",
+  messages: [
+    {
+      role: "system",
+      content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email. You have the ability to save conversations. Keep your answers short and concise`,
+    },
+    ...req.body.messages,
+  ],
+  temperature: 1,
+  top_p: 1,
+});
 
-    // Extract the response text from the completion
-    const responseText = completion.data.choices[0].message.content;
+// Extract the response text from the completion
+const responseText = completion.data.choices[0].message.content;
 
-    // Update conversation history with AI response
-    convohist.push({ role: "assistant", content: responseText });
+// Update conversation history with AI response
+const aiMessage = { role: "assistant", content: responseText };
+convohist.push(aiMessage);
 
-    // Convert the response text to SSML format and generate audio using AWS Polly
-    const params = {
-      OutputFormat: "mp3",
-      Text: `<speak>${responseText.replace(/SPRNGPOD/g, "SPRINGPOD")}</speak>`,
-      TextType: "ssml",
-      VoiceId: "Amy",
-      Engine: "neural",
-    };
+// Convert the response text to SSML format and generate audio using AWS Polly
+const params = {
+  OutputFormat: "mp3",
+  Text: `<speak>${responseText.replace(/SPRNGPOD/g, "SPRINGPOD")}</speak>`,
+  TextType: "ssml",
+  VoiceId: "Amy",
+  Engine: "neural",
+};
 
-    const audioResponse = await Polly.synthesizeSpeech(params).promise();
-    const audioBase64 = audioResponse.AudioStream.toString("base64");
-    const audioDataUri = `data:audio/mp3;base64,${audioBase64}`;
-    const uuid = req.body.uuid; // Get the UUID from the request body
+const audioResponse = await Polly.synthesizeSpeech(params).promise();
+const audioBase64 = audioResponse.AudioStream.toString("base64");
+const audioDataUri = `data:audio/mp3;base64,${audioBase64}`;
+const uuid = req.body.uuid; // Get the UUID from the request body
 
-    // Save conversation history under the "conversations" collection in Firestore
-    const conversationRef = db.collection("conversations").doc(uuid); // Auto-generated document ID
-    await conversationRef.set({
-      userMessages: userMessages,
-      aiMessages: [{ role: "assistant", content: responseText }],
-      entities: userEntities,
-      completion: completion.data.choices[0].message,
-    });
+// Update AI messages array for Firestore storage
+const aiMessagesForFirestore = convohist.filter((message) => message.role === "assistant");
 
-    // Send the response back to the user
-    res.status(200).json({
-      result: completion.data.choices[0].message,
-      audioUrl: audioDataUri,
-      entities: userEntities,
-      convohist: convohist,
-    });
-
-    // Store the updated conversation history in Firestore under the user's node
-    await saveEntitiesAndCompletionToFirestore(uuid, userEntities, completion.data.choices[0].message); // Use the UUID
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to generate audio or save user information" });
-  }
-}
-
-async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, completionMessage) {
-  const userRef = db.collection("users").doc(uuid); // Replace "users" with your collection name
-  await userRef.set({
-    entities: userEntities,
-    completion: completionMessage,
-  }, { merge: true });
-}
+// Save conversation history under the "conversations" collection in Firestore
+const conversationRef = db.collection("conversations").doc(uuid); // Auto-generated document ID
+await conversationRef.set({
+  userMessages: userMessages,
+  aiMessages: aiMessagesForFirestore,
+  entities: userEntities,
+  completion: completion.data.choices[0].message,
+});
