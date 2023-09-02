@@ -87,6 +87,9 @@ export default async function (req, res) {
 
     // Get user messages from the request
     const userMessages = req.body.messages.filter((message) => message.role === "user");
+    
+    // Separate AI messages
+    const aiMessages = req.body.messages.filter((message) => message.role === "assistant");
 
     // Extract entities from user messages using Amazon Comprehend
     const userEntities = [];
@@ -103,6 +106,9 @@ export default async function (req, res) {
     for (const userMessage of userMessages) {
       convohist.push({ role: "User", content: userMessage.content });
     }
+        for (const aiMessage of aiMessages) {
+      convohist.push({ role: "Assistant", content: aiMessage.content });
+    }
 
     // Use the updated system message and user messages to generate a response using OpenAI API
     const completion = await openai.createChatCompletion({
@@ -118,15 +124,9 @@ export default async function (req, res) {
       top_p: 1,
    
     });
-
-    // Extract the response text from the completion
     const responseText = completion.data.choices[0].message.content;
 
-    // Update conversation history with AI response
-    convohist.push({ role: "assistant", content: responseText });
-
-    // Convert the response text to SSML format and generate audio using AWS Polly
-    const params = {
+   const params = {
       OutputFormat: "mp3",
       Text: `<speak>${responseText.replace(/SPRNGPOD/g, "SPRINGPOD")}</speak>`,
       TextType: "ssml",
@@ -139,11 +139,13 @@ export default async function (req, res) {
     const audioDataUri = `data:audio/mp3;base64,${audioBase64}`;
     const uuid = req.body.uuid; // Get the UUID from the request body
 
+
     // Save conversation history under the "conversations" collection in Firestore
     const conversationRef = db.collection("conversations").doc(uuid); // Auto-generated document ID
-    await conversationRef.set({
+    
+    conversationRef.set({
       userMessages: userMessages,
-      aiMessages: [{ role: "assistant", content: responseText }],
+      aiMessages: aiMessages, // Save all AI messages
       entities: userEntities,
       completion: completion.data.choices[0].message,
     });
@@ -164,10 +166,5 @@ export default async function (req, res) {
   }
 }
 
-async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, completionMessage) {
-  const userRef = db.collection("users").doc(uuid); // Replace "users" with your collection name
-  await userRef.set({
-    entities: userEntities,
-    completion: completionMessage,
-  }, { merge: true });
-}
+
+
