@@ -143,12 +143,7 @@ export default async function (req, res) {
     // Save conversation history under the "conversations" collection in Firestore
     const conversationRef = db.collection("conversations").doc(uuid); // Auto-generated document ID
     
-    conversationRef.set({
-      userMessages: userMessages,
-      aiMessages: aiMessages, // Save all AI messages
-      entities: userEntities,
-      completion: completion.data.choices[0].message,
-    });
+   
 
     // Send the response back to the user
     res.status(200).json({
@@ -159,11 +154,22 @@ export default async function (req, res) {
     });
 
     // Store the updated conversation history in Firestore under the user's node
-    await saveEntitiesAndCompletionToFirestore(uuid, userEntities, completion.data.choices[0].message); // Use the UUID
+  await saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMessages, aiMessages, completion.data.choices[0].message);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to generate audio or save user information" });
   }
+}
+
+async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMessages, aiMessages, completionMessage) {
+  const userRef = db.collection("conversations").doc(uuid);
+
+  await userRef.set({
+    userMessages: userMessages,
+    aiMessages: aiMessages,
+    entities: userEntities,
+    completion: completionMessage,
+  }, { merge: true });
 }
 
 
