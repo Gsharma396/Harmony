@@ -151,7 +151,7 @@ export default async function (req, res) {
     });
 
     // Send the response back to the user
-    res.status(200).json({
+     res.status(200).json({
       result: completion.data.choices[0].message,
       audioUrl: audioDataUri,
       entities: userEntities,
@@ -161,7 +161,7 @@ export default async function (req, res) {
     // Store the updated conversation history in Firestore under the user's node
     await saveEntitiesAndCompletionToFirestore(uuid, userEntities, completion.data.choices[0].message); // Use the UUID
   } catch (error) {
-    console.error(error);
+    console.error("Error:", error); // Print the error with a message
     res.status(500).json({ error: "Failed to generate audio or save user information" });
   }
 }
