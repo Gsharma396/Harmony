@@ -27,7 +27,7 @@ const Polly = new AWS.Polly();
 
 // Initialize Firebase Admin SDK and Firestore
 if (!admin.apps.length) {
-  const serviceAccount = require("./harmony-8d4ef-firebase-adminsdk-e95ug-013fce08da.json");
+  const serviceAccount = require("./pages/api/harmony-8d4ef-firebase-adminsdk-e95ug-013fce08da.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
