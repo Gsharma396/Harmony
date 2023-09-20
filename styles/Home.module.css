@@ -15,8 +15,7 @@
 }
 
 .topnav {
-  background-color: #1d2333;
-  border-bottom: 1px solid #30373d;
+  background-color: #655745;
   display: flex;
   justify-content: space-between;
   padding: 1rem 0.75rem 1rem 0.75rem;
@@ -66,8 +65,8 @@
   padding: 1rem 2rem 1rem 2rem;
   width: 75vw;
   border-radius: 0.5rem;
-  border: 1px solid #30373d;
-  background: #0e1524;
+  border: none;
+  background: #655745;
   color: #ECECF1;
   outline: none;
 }
@@ -77,7 +76,7 @@
 }
 
 .textarea::placeholder {
-  color: #5f6368;
+  color: #97928d;
 }
 
 .generatebutton {
@@ -101,12 +100,12 @@
   transform: rotate(90deg);
   width: 1.2em;
   height: 1.2em;
-  fill: currentColor;
+  fill: #97928d;
   
 }
 
 .generatebutton:hover {
-  background: #1f2227;
+  background: #6b6257;
   border-radius: 0.2rem;
 }
 
@@ -131,7 +130,7 @@
 }
 
 .usermessage {
-  background: #0e1524;
+  background: #958065 ;
   padding: 1.5rem;
   color: #ECECF1;
 }
@@ -139,7 +138,7 @@
 .usermessagewaiting{
   padding: 1.5rem;
   color: #ECECF1;
-  background: linear-gradient(to left, #0e1524, #172036, #0e1524);
+  background: linear-gradient(to left, #958065, #af9779, #958065);
   background-size: 200% 200%;
   background-position: -100% 0;
   animation: loading-gradient 2s ease-in-out infinite;
@@ -157,7 +156,7 @@
 }
 
 .apimessage {
-  background: #1d2333;
+  background: #655745;
   padding: 1.5rem;
   color: #ECECF1;
   animation: fadein 0.5s;
@@ -218,9 +217,8 @@
 .cloud {
   width: 75vw;
   height: 65vh;
-  background: #0e1524;
+  background: #F8F0CF;
   border-radius: 0.5rem;
-  border: 1px solid #30373d;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -238,14 +236,14 @@
 }
 
 .footer {
-  color: #5f6368;
+  color: #ffffff;
   font-size: 0.8rem;
   margin: 1.5rem;
 }
 
 .footer a {
   font-weight: 500;
-  color: #7a7d81;
+  color: #ffffff;
 }
 
 .footer a:hover {
@@ -317,7 +315,7 @@ margin-right: 300px;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #928877;
   border-radius: 34px;
   transition: 0.4s;
 }
@@ -327,7 +325,7 @@ margin-right: 300px;
   content: "";
   height: 18px;
   width: 18px;
-  left: 2px;
+  left: 1px;
   bottom: 1px;
   background-color: white;
   border-radius: 50%;
@@ -335,10 +333,10 @@ margin-right: 300px;
 }
 
 .toggleInput:checked + .slider {
-  background-color: #3cb371;
+  background-color: #70614c;
 }
 
 .toggleInput:checked + .slider:before {
-  transform: translateX(20px);
+  transform: translateX(19px);
 }
 /* ... (rest of the previous CSS styles) */
