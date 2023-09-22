@@ -112,7 +112,7 @@ export default async function (req, res) {
 
     // Use the updated system message and user messages to generate a response using OpenAI API
     const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo-16k",
       messages: [
         {
           role: "user",
