@@ -70,7 +70,10 @@ const extractEntitiesWithComprehend = async (text) => {
 
     if (comprehendEntities) {
       comprehendEntities.forEach((entity) => {
-        entities.push({ type: entity.Type.toLowerCase(), entity: entity.Text });
+        // Filter entities by type (PERSON and OTHER)
+        if (entity.Type === "PERSON" || entity.Type === "OTHER") {
+          entities.push({ type: entity.Type.toLowerCase(), entity: entity.Text });
+        }
       });
     }
   } catch (error) {
@@ -79,6 +82,7 @@ const extractEntitiesWithComprehend = async (text) => {
 
   return entities;
 };
+
 
 export default async function (req, res) {
   try {
@@ -112,7 +116,7 @@ export default async function (req, res) {
 
     // Use the updated system message and user messages to generate a response using OpenAI API
     const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo-16k",
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "user",
@@ -171,5 +175,7 @@ async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMess
     completion: completionMessage,
   }, { merge: true });
 }
+
+
 
 
