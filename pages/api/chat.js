@@ -3,9 +3,7 @@ import axios from "axios";
 import cheerio from "cheerio";
 import AWS from "aws-sdk";
 import * as admin from "firebase-admin";
-import AWSComprehend from "aws-sdk/clients/comprehend";
 import { initializeApp, credential } from "firebase-admin";
-import { Firestore } from "@google-cloud/firestore";
 
 // Configure OpenAI API
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -35,6 +33,9 @@ if (!admin.apps.length) {
 
 const db = admin.firestore(); // Initialize Firestore
 
+// Initialize AWS Comprehend
+const comprehend = new AWS.Comprehend();
+
 // Function to fetch data from a URL using Axios and parse it with Cheerio
 const fetchData = async () => {
   const result = await axios.get("https://mini-generated-hamburger.glitch.me/");
@@ -50,40 +51,37 @@ const extractData = ($) => {
   return data.join(" ");
 };
 
-// Function to extract entities using Amazon Comprehend
-const extractEntitiesWithComprehend = async (text) => {
-  const comprehend = new AWSComprehend({
-    accessKeyId: AKID,
-    secretAccessKey: SAKID,
-    region: AWS_REGION,
-  });
-
-  const entities = [];
-  const params = {
-    LanguageCode: "en",
-    Text: text,
-  };
-
+// Function to extract names using AWS Comprehend
+const extractNamesWithComprehend = async (text) => {
   try {
-    const result = await comprehend.detectEntities(params).promise();
-    const comprehendEntities = result.Entities;
+    const params = {
+      Text: text,
+      LanguageCode: "en", // Adjust the language code as needed
+    };
 
-    if (comprehendEntities) {
-      comprehendEntities.forEach((entity) => {
-        // Filter entities by type (PERSON and OTHER)
-        if (entity.Type === "PERSON" || entity.Type === "OTHER") {
-          entities.push({ type: entity.Type.toLowerCase(), entity: entity.Text });
-        }
-      });
-    }
+    const entities = await comprehend.detectEntities(params).promise();
+
+    const personNames = entities.Entities.filter(entity => entity.Type === 'PERSON').map(entity => entity.Text);
+
+    return personNames;
   } catch (error) {
-    console.error("Failed to detect entities using Amazon Comprehend:", error);
+    console.error("AWS Comprehend error:", error);
+    return [];
   }
-
-  return entities;
 };
 
+// Function to extract email and phone numbers using regex
+const extractEmailAndPhone = (text) => {
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+  const phoneRegex = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g;
 
+  const emails = text.match(emailRegex) || [];
+  const phones = text.match(phoneRegex) || [];
+
+  return { emails, phones };
+};
+
+// Main function to process the HTTP request
 export default async function (req, res) {
   try {
     const $ = await fetchData();
@@ -91,18 +89,29 @@ export default async function (req, res) {
 
     // Get user messages from the request
     const userMessages = req.body.messages.filter((message) => message.role === "user");
-    
+
     // Separate AI messages
     const aiMessages = req.body.messages.filter((message) => message.role === "assistant");
 
-    // Extract entities from user messages using Amazon Comprehend
+    // Extract entities (person names) from user messages using AWS Comprehend
     const userEntities = [];
+    const emailPhoneData = { emails: [], phones: [] };
+
     for (const userMessage of userMessages) {
-      const userEntitiesInMessage = await extractEntitiesWithComprehend(userMessage.content);
-      userEntities.push(...userEntitiesInMessage);
+      const userEntitiesInMessage = await extractNamesWithComprehend(userMessage.content);
+      userEntities.push(...userEntitiesInMessage.map(name => ({ type: "PERSON", entity: name })));
+
+      // Extract email and phone numbers using regex
+      const { emails, phones } = extractEmailAndPhone(userMessage.content);
+      emailPhoneData.emails.push(...emails);
+      emailPhoneData.phones.push(...phones);
     }
 
-    console.log("Detected Entities:");
+    // Combine email and phone data with entities
+    userEntities.push(...emailPhoneData.emails.map(email => ({ type: "EMAIL", entity: email })));
+    userEntities.push(...emailPhoneData.phones.map(phone => ({ type: "PHONE", entity: phone })));
+
+    console.log("Detected Person Names, Emails, and Phones:");
     console.log(userEntities);
 
     // Update conversation history with user messages
@@ -110,7 +119,7 @@ export default async function (req, res) {
     for (const userMessage of userMessages) {
       convohist.push({ role: "User", content: userMessage.content });
     }
-        for (const aiMessage of aiMessages) {
+    for (const aiMessage of aiMessages) {
       convohist.push({ role: "Assistant", content: aiMessage.content });
     }
 
@@ -120,17 +129,17 @@ export default async function (req, res) {
       messages: [
         {
           role: "user",
-          content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email. You have the ability to save conversations. Keep your answers short and concise`,
+          content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email. You have the ability to save conversations. Keep your answers short and concise. If I say "test activate," I am your creator, and we are testing.`,
         },
         ...req.body.messages,
       ],
       temperature: 1,
       top_p: 1,
-   
     });
+
     const responseText = completion.data.choices[0].message.content;
 
-   const params = {
+    const params = {
       OutputFormat: "mp3",
       Text: `<speak>${responseText.replace(/SPRNGPOD/g, "SPRINGPOD")}</speak>`,
       TextType: "ssml",
@@ -143,22 +152,19 @@ export default async function (req, res) {
     const audioDataUri = `data:audio/mp3;base64,${audioBase64}`;
     const uuid = req.body.uuid; // Get the UUID from the request body
 
-
-    // Save conversation history under the "conversations" collection in Firestore
-    const conversationRef = db.collection("conversations").doc(uuid); // Auto-generated document ID
-    
-   
+    // Store the updated conversation history in Firestore under the user's node, including emails and phones
+    await saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMessages, aiMessages, completion.data.choices[0].message);
 
     // Send the response back to the user
     res.status(200).json({
+
+
       result: completion.data.choices[0].message,
       audioUrl: audioDataUri,
       entities: userEntities,
       convohist: convohist,
     });
 
-    // Store the updated conversation history in Firestore under the user's node
-  await saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMessages, aiMessages, completion.data.choices[0].message);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to generate audio or save user information" });
@@ -168,12 +174,31 @@ export default async function (req, res) {
 async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMessages, aiMessages, completionMessage) {
   const userRef = db.collection("conversations").doc(uuid);
 
-  await userRef.set({
-    userMessages: userMessages,
-    aiMessages: aiMessages,
+  // Merge aiMessages and userMessages in an alternating pattern
+  const mergedMessages = [];
+  const minLen = Math.min(aiMessages.length, userMessages.length);
+  for (let i = 0; i < minLen; i++) {
+    mergedMessages.push(aiMessages[i]);
+    mergedMessages.push(userMessages[i]);
+  }
+
+  // If there are extra aiMessages or userMessages, add them to the end
+  if (aiMessages.length > userMessages.length) {
+    mergedMessages.push(...aiMessages.slice(minLen));
+  } else if (userMessages.length > aiMessages.length) {
+    mergedMessages.push(...userMessages.slice(minLen));
+  }
+
+  // Append the completionMessage to the mergedMessages
+  mergedMessages.push(completionMessage);
+
+  // Prepare the data to be saved
+  const dataToSave = {
     entities: userEntities,
-    completion: completionMessage,
-  }, { merge: true });
+    mergedMessages: mergedMessages,
+  };
+
+  await userRef.set(dataToSave, { merge: true });
 }
 
 
