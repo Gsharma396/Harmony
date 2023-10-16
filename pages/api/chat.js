@@ -51,7 +51,49 @@ const extractData = ($) => {
   return data.join(" ");
 };
 
-// Function to extract names using AWS Comprehend
+// Define a list of names to be blacklisted
+const nameBlacklist = [
+  "John Hauber",
+  "Jon Hauber",
+  "John Hober",
+  "Jon Hober",
+  "John Hauver",
+  "Jon Hauver",
+  "Tim Cobb",
+  "Tim Cobe",
+  "Robin Gestal",
+  "Robyn Gestal",
+  "Rebecca Van Wieren",
+  "Rebekah Van Wieren",
+  "Steven Raichilson",
+  "Stephen Raichilson",
+  "Steve Raichilson",
+  "Steven Raichelsson",
+  "Steve Raichelsson",
+  "Errick Thomas",
+  "Eric Thomas",
+  "Erick Thomas",
+  "Sabel Kaminski",
+  "Sabelle Kaminski",
+  "Sabel Kaminsky",
+  "Kelsie Heermans",
+  "Kelsey Heermans",
+  "Kelsie Hermans",
+  "Travis Bowden",
+  "Travis Boden",
+  "Travis Bowdon",
+  "Bud Rainsberger",
+  "Buddy Rainsberger",
+  "Bill Bent",
+  "William Bent",
+  "George Anderson",
+  "Georges Anderson",
+  "George Andersen",
+];
+
+// Add more variations for the remaining names as needed.
+
+// Function to extract names using AWS Comprehend, excluding blacklisted names (case-insensitive)
 const extractNamesWithComprehend = async (text) => {
   try {
     const params = {
@@ -61,7 +103,9 @@ const extractNamesWithComprehend = async (text) => {
 
     const entities = await comprehend.detectEntities(params).promise();
 
-    const personNames = entities.Entities.filter(entity => entity.Type === 'PERSON').map(entity => entity.Text);
+    const personNames = entities.Entities
+      .filter(entity => entity.Type === 'PERSON' && !isNameBlacklisted(entity.Text))
+      .map(entity => entity.Text);
 
     return personNames;
   } catch (error) {
@@ -69,6 +113,14 @@ const extractNamesWithComprehend = async (text) => {
     return [];
   }
 };
+
+// Function to check if a name is in the blacklist (case-insensitive)
+const isNameBlacklisted = (name) => {
+  const lowerCaseName = name.toLowerCase();
+  return nameBlacklist.some(blacklistedName => lowerCaseName === blacklistedName.toLowerCase());
+};
+
+
 
 // Function to extract email and phone numbers using regex
 const extractEmailAndPhone = (text) => {
@@ -200,7 +252,3 @@ async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMess
 
   await userRef.set(dataToSave, { merge: true });
 }
-
-
-
-
