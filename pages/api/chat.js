@@ -219,7 +219,7 @@ export default async function (req, res) {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to generate audio or save user information" });
+    res.status(404).json({ error: "Failed to generate audio or save user information" });
   }
 }
 
