@@ -244,10 +244,14 @@ async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMess
   // Append the completionMessage to the mergedMessages
   mergedMessages.push(completionMessage);
 
+  // Get the current timestamp
+  const timestamp = admin.firestore.Timestamp.now();
+
   // Prepare the data to be saved
   const dataToSave = {
     entities: userEntities,
     mergedMessages: mergedMessages,
+    createdAt: timestamp, // Add createdAt with the current timestamp
   };
 
   await userRef.set(dataToSave, { merge: true });
