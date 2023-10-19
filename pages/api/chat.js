@@ -148,6 +148,7 @@ export default async function (req, res) {
     // Extract entities (person names) from user messages using AWS Comprehend
     const userEntities = [];
     const emailPhoneData = { emails: [], phones: [] };
+    const streamingResponses = [];
 
     for (const userMessage of userMessages) {
       const userEntitiesInMessage = await extractNamesWithComprehend(userMessage.content);
@@ -181,12 +182,13 @@ export default async function (req, res) {
       messages: [
         {
           role: "user",
-          content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email and phone number, and refer them to haven's phone number of . You have the ability to save conversations. Havens number is (855) 542-6342`,
+          content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email and phone number. You have the ability to save conversations. Keep your answers short and concise. If I say "test activate," I am your creator, and we are testing.`,
         },
         ...req.body.messages,
       ],
       temperature: 1,
       top_p: 1,
+
     });
 
     const responseText = completion.data.choices[0].message.content;
@@ -223,8 +225,13 @@ export default async function (req, res) {
   }
 }
 
+let documentCount = 0; // Define a global variable for document counting
+
 async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMessages, aiMessages, completionMessage) {
   const userRef = db.collection("conversations").doc(uuid);
+
+  // Increment the document counter
+  documentCount++;
 
   // Merge aiMessages and userMessages in an alternating pattern
   const mergedMessages = [];
@@ -244,14 +251,11 @@ async function saveEntitiesAndCompletionToFirestore(uuid, userEntities, userMess
   // Append the completionMessage to the mergedMessages
   mergedMessages.push(completionMessage);
 
-  // Get the current timestamp
-  const timestamp = admin.firestore.Timestamp.now();
-
   // Prepare the data to be saved
   const dataToSave = {
     entities: userEntities,
     mergedMessages: mergedMessages,
-    createdAt: timestamp, // Add createdAt with the current timestamp
+    docCount: `${documentCount}`, // Use the document count as the document identifier
   };
 
   await userRef.set(dataToSave, { merge: true });
