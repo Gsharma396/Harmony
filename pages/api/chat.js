@@ -4,10 +4,7 @@ import cheerio from "cheerio";
 import AWS from "aws-sdk";
 import * as admin from "firebase-admin";
 import { initializeApp, credential } from "firebase-admin";
-import { Amplify } from "aws-amplify";
-import awsExports from "../src/aws-exports";
 
-Amplify.configure({ ...awsExports, ssr: true });
 // Configure OpenAI API
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const configuration = new Configuration({ apiKey: OPENAI_API_KEY });
