@@ -4,16 +4,15 @@ import cheerio from "cheerio";
 import AWS from "aws-sdk";
 import * as admin from "firebase-admin";
 import { initializeApp, credential } from "firebase-admin";
-const details = require('./details');
 
 // Configure OpenAI API
-const OPENAI_API_KEY = details.OPENAI_API_KEY; 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const configuration = new Configuration({ apiKey: OPENAI_API_KEY });
 const openai = new OpenAIApi(configuration);
 
 // Configure AWS Polly
-const AKID = details.AKID;
-const SAKID = details.SAKID;
+const AKID = process.env.AKID;
+const SAKID = process.env.SAKID;
 const AWS_REGION = "us-east-1";
 
 AWS.config.update({
