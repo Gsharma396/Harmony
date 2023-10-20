@@ -132,7 +132,7 @@ const handleSubmit = async (e) => {
     clearTimeout(reminderTimeout);
   }
 
-  const response = await fetch('/api/chat.js', {
+  const response = await fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
