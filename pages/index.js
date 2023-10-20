@@ -5,12 +5,8 @@ import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import CircularProgress from '@mui/material/CircularProgress';
 import { v4 as uuidv4 } from 'uuid'; // Import the UUID library
-import { Amplify } from "aws-amplify";
-import awsExports from "../src/aws-exports";
 
 const Home = () => {
-  Amplify.configure({ ...awsExports, ssr: true });
-
   const [voiceOn, setVoiceOn] = useState(false);
   const [audioUrl, setAudioUrl] = useState('');
   const [userInput, setUserInput] = useState('');
