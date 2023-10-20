@@ -171,7 +171,8 @@ const handleSubmit = async (e) => {
   setLoading(false);
 };
 
-
+console.log("This is made by rishaan");
+  
   const handleVoiceToggle = () => {
     setVoiceOn((prevState) => !prevState);
   };
