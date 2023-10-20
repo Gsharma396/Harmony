@@ -6,7 +6,7 @@ import * as admin from "firebase-admin";
 import { initializeApp, credential } from "firebase-admin";
 
 // Configure OpenAI API
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY; 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const configuration = new Configuration({ apiKey: OPENAI_API_KEY });
 const openai = new OpenAIApi(configuration);
 
@@ -178,11 +178,11 @@ export default async function (req, res) {
 
     // Use the updated system message and user messages to generate a response using OpenAI API
     const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo-16k",
       messages: [
         {
-          role: "user",
-          content: ` Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email and phone number. You have the ability to save conversations. Keep your answers short and concise. If I say "test activate," I am your creator, and we are testing.`,
+          role: "systen",
+          content: `Use this data:\n\n${content}\n\nYou are a customer support representative named Harmony, working for Haven Senior Investments. If they ask how to contact, don't redirect them to Haven's site, but ask them for their name and email and phone number. You have the ability to save conversations. Keep your answers short and concise. If I say "test activate," I am your creator, and we are testing.`,
         },
         ...req.body.messages,
       ],
